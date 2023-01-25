@@ -11,6 +11,7 @@ public class PlayerMove2D : MonoBehaviour
 
     private int faceDirection;
     private float horizontal;
+    public bool isMoving;
     [SerializeField] private float moveSpeed = 5f;
 
     [Header("Special abilities")]
@@ -18,15 +19,15 @@ public class PlayerMove2D : MonoBehaviour
     [SerializeField] private bool wallClinging = false;
     [SerializeField] private float wallSpeed = 0f;
     [SerializeField] private bool airAcro = false;
-    private bool isDashing;
-    private bool canDash;
+    public bool isDashing;
+    public bool canDash;
     [SerializeField] private float dashSpeed = 20f;
     private float dashTime = 0.2f;
 
     [Header("Jump parameters")]
-    private bool isJumping;
-    private bool doubleJumping;
-    private bool jumpPressed;  
+    public bool isJumping;
+    public bool doubleJumping;
+    public bool jumpPressed;  
     public static float gravityAccel = -9.81f;
     [SerializeField] private float jumpForce = 8f;
     [SerializeField] private float gravityScale = 2f;
@@ -72,39 +73,22 @@ public class PlayerMove2D : MonoBehaviour
         if (Input.GetButtonDown("Jump") && (isGrounded() || wallClinging || (airAcro && !doubleJumping)))
         {
             jumpPressed = true;
-            animator.SetBool("Idle", false);
-            animator.SetBool("Run", false);
+
         }
 
         if (Input.GetButtonDown("Fire3") && canDash)
         {
-            animator.SetBool("Idle", false);
-            animator.SetBool("Run", false);
             StartCoroutine(Dash());
         }
         if(isGrounded())
         {
-            if (horizontal == 0)
-            {
-                animator.SetBool("Idle", true);
-                animator.SetBool("Run", false);
-            }
-            else
-            {
-                animator.SetBool("Run", true);
-                animator.SetBool("Idle", false);
-            }
+            isMoving = horizontal != 0;
             isJumping = false;
             doubleJumping = false;
             if (!isDashing)
                 canDash = true;
         }
-        if(isJumping)
-        {
-            animator.SetBool("jump", true);
-        }
-        else
-            animator.SetBool("jump", false);
+
 
         WallCling();
     }
@@ -147,7 +131,6 @@ public class PlayerMove2D : MonoBehaviour
                 isJumping = true;
                 jumpPressed = false;
                 doubleJumping = true;
-                animator.SetBool("Djump", true);
             }
         }
 
@@ -155,10 +138,6 @@ public class PlayerMove2D : MonoBehaviour
         if (rb.velocity.y < 0.01)
         {
             rb.AddForce(Vector3.up * gravityAccel * gravityScale, ForceMode.Acceleration);
-
-            if(rb.velocity.y < -1)
-                animator.SetBool("Djump", false);
-
 
         }
 
@@ -168,20 +147,18 @@ public class PlayerMove2D : MonoBehaviour
     //Dashing coroutine
     public IEnumerator Dash()
     {
-        animator.SetBool("jump", true);
         canDash = false;
         isDashing = true;
         yield return new WaitForSeconds(dashTime);
         if(isGrounded())
             canDash = true;
         isDashing = false;
-        animator.SetBool("jump", false);
 
 
     }
 
     //Check for on ground
-    private bool isGrounded()
+    public bool isGrounded()
     {
         Vector3 halfExtents = bc.bounds.extents;
         float maxDistance = halfExtents.y;

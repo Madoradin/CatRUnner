@@ -13,6 +13,23 @@ public class PlayerAnimation : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        
+        animator.SetBool("dash", playerMove.isDashing);
+        animator.SetBool("jump", playerMove.isJumping);
+        animator.SetBool("Djump", playerMove.doubleJumping);
+
+        if (playerMove.isGrounded())
+        {
+            animator.SetBool("Idle", !playerMove.isMoving);
+            animator.SetBool("Run", playerMove.isMoving);
+
+        }
+
+        if (playerMove.jumpPressed || playerMove.isDashing)
+        {
+            animator.SetBool("Idle", false);
+            animator.SetBool("Run", false);
+        }
+
+
     }
 }
