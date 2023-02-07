@@ -16,6 +16,7 @@ public class PlayerAnimation : MonoBehaviour
         animator.SetBool("dash", playerMove.isDashing);
         animator.SetBool("jump", playerMove.isJumping);
         animator.SetBool("Djump", playerMove.doubleJumping);
+        animator.SetBool("wallCling", playerMove.wallClinging);
 
         if (playerMove.isGrounded())
         {

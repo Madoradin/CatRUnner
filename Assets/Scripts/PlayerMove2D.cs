@@ -13,10 +13,12 @@ public class PlayerMove2D : MonoBehaviour
     private float horizontal;
     public bool isMoving;
     [SerializeField] private float moveSpeed = 5f;
+    private RaycastHit groundInfo;
+    private Vector3 velocity;
 
     [Header("Special abilities")]
     [SerializeField] private bool canClimb = false;
-    [SerializeField] private bool wallClinging = false;
+    public bool wallClinging = false;
     [SerializeField] private float wallSpeed = 0f;
     [SerializeField] private bool airAcro = false;
     public bool isDashing;
@@ -52,6 +54,7 @@ public class PlayerMove2D : MonoBehaviour
     void Update()
     {
         horizontal = Input.GetAxisRaw("Horizontal");
+        velocity = rb.velocity;
 
         if (horizontal > 0)
         {
@@ -82,6 +85,17 @@ public class PlayerMove2D : MonoBehaviour
         }
         if(isGrounded())
         {
+            float slopeAngle = Vector2.Angle(groundInfo.normal, Vector2.up);
+            if(slopeAngle != 0)
+            {
+                Transform spriteObject = gameObject.transform.Find("naokoSprite");
+
+                var slopeVector = Quaternion.AngleAxis(slopeAngle, Vector3.forward);
+                spriteObject.localRotation *= slopeVector;
+                ClimbSlope(ref velocity, slopeAngle);
+                rb.velocity = velocity;
+            }
+
             isMoving = horizontal != 0;
             isJumping = false;
             doubleJumping = false;
@@ -89,8 +103,8 @@ public class PlayerMove2D : MonoBehaviour
                 canDash = true;
         }
 
-
-        WallCling();
+        if(canClimb)
+            WallCling();
     }
 
     // FixedUpdate is for physics based statements
@@ -108,7 +122,7 @@ public class PlayerMove2D : MonoBehaviour
         //normal jump
         if(jumpPressed && isGrounded() && !wallClinging)
         {
-            rb.velocity = new Vector3(rb.velocity.x, jumpForce, 0);
+            rb.velocity = new Vector3(rb.velocity.x, rb.velocity.y + jumpForce, 0);
             isJumping = true;
             jumpPressed = false;
 
@@ -132,16 +146,32 @@ public class PlayerMove2D : MonoBehaviour
                 jumpPressed = false;
                 doubleJumping = true;
             }
+
+            //fall code
+            if (rb.velocity.y < 0.01)
+            {
+                rb.AddForce(Vector3.up * gravityAccel * gravityScale, ForceMode.Acceleration);
+
+            }
         }
 
-        //fall code
-        if (rb.velocity.y < 0.01)
-        {
-            rb.AddForce(Vector3.up * gravityAccel * gravityScale, ForceMode.Acceleration);
-
-        }
 
 
+
+    }
+
+    void ClimbSlope(ref Vector3 velocity, float slopeAngle)
+    {
+        float moveDistance = Mathf.Abs(velocity.x);
+        velocity.y = Mathf.Sin(slopeAngle * Mathf.Deg2Rad) * moveDistance;
+        velocity.x = Mathf.Cos(slopeAngle * Mathf.Deg2Rad) * moveDistance * Mathf.Sign(velocity.x);
+    }
+
+    void DescendSlope(ref Vector3 velocity, float slopeAngle)
+    {
+        float moveDistance = Mathf.Abs(velocity.x);
+        velocity.y -= Mathf.Sin(slopeAngle * Mathf.Deg2Rad) * moveDistance;
+        velocity.x = Mathf.Cos(slopeAngle * Mathf.Deg2Rad) * moveDistance * Mathf.Sign(velocity.x);
     }
 
     //Dashing coroutine
@@ -164,7 +194,13 @@ public class PlayerMove2D : MonoBehaviour
         float maxDistance = halfExtents.y;
         halfExtents.y = 0.01f;
 
-        return Physics.BoxCast(bc.bounds.center, halfExtents, Vector3.down, Quaternion.identity, maxDistance, LayerMask.GetMask("Ground"));
+        return Physics.BoxCast(bc.bounds.center,
+                               halfExtents,
+                               Vector3.down,
+                               out groundInfo,
+                               Quaternion.identity,
+                               maxDistance,
+                               LayerMask.GetMask("Ground"));
 
     }
 
